@@ -20,6 +20,7 @@ type point struct {
 
 type Cell struct {
 	living   bool
+	safe     bool
 	location point
 }
 
@@ -96,24 +97,29 @@ func (u Universe) livingNeighbours(c *Cell) int {
 }
 
 // Every tick, the reaper cometh
-func (u Universe) reaper() {
+func (u Universe) reaper() Universe {
+	// copy the existing universe
+	nu := make(Universe)
+	for k, v := range u {
+		nu[k] = v
+	}
 	for _, v := range u {
 		n := u.livingNeighbours(v)
 		if n < 2 && v.living == true {
 			// die from starvation
-			u.spawnCell(v.location, false)
+			nu.spawnCell(v.location, false)
 		} else if (n == 2 || n == 3) && v.living == true {
 			// live on
-			u.spawnCell(v.location, true)
+			nu.spawnCell(v.location, true)
 		} else if n > 3 && v.living == true {
 			// die from overpopulation
-			u.spawnCell(v.location, false)
+			nu.spawnCell(v.location, false)
 		} else if n == 3 && v.living == false {
 			// replicate
-			u.spawnCell(v.location, true)
+			nu.spawnCell(v.location, true)
 		}
 	}
-
+	return nu
 }
 
 func main() {
@@ -162,13 +168,13 @@ func main() {
 	u[p] = &Cell{}
 	u.spawnCell(p, true)
 
-	for {
+	for g := 1; ; g++ {
 		c := exec.Command("clear")
 		c.Stdout = os.Stdout
 		c.Run()
+		fmt.Printf("Generation: %v\n", g)
 		printGrid(u)
-		fmt.Printf("Point %v has %v neigh\n", p, u.livingNeighbours(u[p]))
 		time.Sleep(time.Second / 16)
-		u.reaper()
+		u = u.reaper()
 	}
 }
