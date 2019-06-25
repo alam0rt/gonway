@@ -50,8 +50,6 @@ func (p *point) GetNeighbours() [8]point {
 	return n
 }
 
-const Width int = 80
-const Height int = 24
 const Tick int = 1
 
 func printGrid(u Universe) {
@@ -100,18 +98,13 @@ func (u Universe) livingNeighbours(c *Cell) int {
 func (u Universe) reaper() Universe {
 	// copy the existing universe
 	nu := make(Universe)
-	for k, v := range u {
-		nu[k] = v
-	}
+	nu.init()
 	for _, v := range u {
 		n := u.livingNeighbours(v)
-		if n < 2 && v.living == true {
-			// die from starvation
-			nu.spawnCell(v.location, false)
-		} else if (n == 2 || n == 3) && v.living == true {
+		if (n == 2 || n == 3) && v.living == true {
 			// live on
 			nu.spawnCell(v.location, true)
-		} else if n > 3 && v.living == true {
+		} else if n > 3 || n < 2 && v.living == true {
 			// die from overpopulation
 			nu.spawnCell(v.location, false)
 		} else if n == 3 && v.living == false {
@@ -122,10 +115,8 @@ func (u Universe) reaper() Universe {
 	return nu
 }
 
-func main() {
-	u := make(Universe)
-
-	// initiate the grid with "dead" cells
+// init() creates a new instance of the Universe
+func (u Universe) init() Universe {
 	chars := Width * Height
 	w := 0
 	for h := 0; h < Height; {
@@ -140,22 +131,27 @@ func main() {
 			w += 1
 		}
 	}
+	return u
+}
 
-	//   o o
-	// o o
-	//   o
-	// create a "living" cell
+const Height = 50
+const Width = 100
 
-	// center
+func main() {
+
+	u := make(Universe)
+	Universe.init(u)
+
+	// make a shape
 	p := point{x: Width / 2, y: Height / 2}
 	u[p] = &Cell{}
 	u.spawnCell(p, true)
 
-	// right
 	p = point{x: Width/2 + 1, y: Height / 2}
 	u[p] = &Cell{}
 	u.spawnCell(p, true)
 
+	// right
 	p = point{x: Width / 2, y: Height/2 + 1}
 	u[p] = &Cell{}
 	u.spawnCell(p, true)
@@ -168,13 +164,14 @@ func main() {
 	u[p] = &Cell{}
 	u.spawnCell(p, true)
 
+	// the loop
 	for g := 1; ; g++ {
 		c := exec.Command("clear")
 		c.Stdout = os.Stdout
 		c.Run()
 		fmt.Printf("Generation: %v\n", g)
-		printGrid(u)
-		time.Sleep(time.Second / 16)
 		u = u.reaper()
+		printGrid(u)
+		time.Sleep(time.Second / 8)
 	}
 }
