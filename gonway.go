@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"os/exec"
 	"time"
@@ -100,13 +99,17 @@ func (u Universe) livingNeighbours(c *Cell) int {
 func (u Universe) reaper() {
 	for _, v := range u {
 		n := u.livingNeighbours(v)
-		if n < 2 {
+		if n < 2 && v.living == true {
+			// die from starvation
 			u.spawnCell(v.location, false)
-		} else if n == 2 || n == 3 {
+		} else if (n == 2 || n == 3) && v.living == true {
+			// live on
 			u.spawnCell(v.location, true)
-		} else if n > 3 {
+		} else if n > 3 && v.living == true {
+			// die from overpopulation
 			u.spawnCell(v.location, false)
-		} else {
+		} else if n == 3 && v.living == false {
+			// replicate
 			u.spawnCell(v.location, true)
 		}
 	}
@@ -128,18 +131,30 @@ func main() {
 			p := point{x: w, y: h}
 			u[p] = &Cell{}
 			u.spawnCell(p, false)
-			fmt.Println(p)
 			w += 1
 		}
 	}
 
+	//   o o
+	// o o
+	//   o
 	// create a "living" cell
+
+	// center
 	p := point{x: Width / 2, y: Height / 2}
 	u[p] = &Cell{}
 	u.spawnCell(p, true)
 
-	// and a neighbour
+	// right
+	p = point{x: Width/2 + 1, y: Height / 2}
+	u[p] = &Cell{}
+	u.spawnCell(p, true)
+
 	p = point{x: Width / 2, y: Height/2 + 1}
+	u[p] = &Cell{}
+	u.spawnCell(p, true)
+
+	p = point{x: Width/2 - 1, y: Height/2 + 1}
 	u[p] = &Cell{}
 	u.spawnCell(p, true)
 
@@ -148,12 +163,12 @@ func main() {
 	u.spawnCell(p, true)
 
 	for {
-
-		printGrid(u)
-		time.Sleep(time.Second)
-		u.reaper()
 		c := exec.Command("clear")
 		c.Stdout = os.Stdout
 		c.Run()
+		printGrid(u)
+		fmt.Printf("Point %v has %v neigh\n", p, u.livingNeighbours(u[p]))
+		time.Sleep(time.Second / 16)
+		u.reaper()
 	}
 }
